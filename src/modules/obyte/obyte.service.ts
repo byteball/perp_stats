@@ -1,6 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { ObyteNetworkService } from './obyte-network.service';
 import { CacheService } from '../cache/cache.service';
+import { ConfigService } from '@nestjs/config';
 
 @Injectable()
 export class ObyteService {
@@ -10,8 +11,14 @@ export class ObyteService {
   constructor(
     private readonly obyteNetworkService: ObyteNetworkService,
     private readonly cacheService: CacheService,
+    private readonly configService: ConfigService,
   ) {
     this.scheduleExchangeRatesUpdate();
+  }
+
+  async getPythAddresses(): Promise<string[]> {
+    const baseAAs = this.configService.get<string[]>('obyte.baseAAs', []);
+    return this.obyteNetworkService.getAAsFromBaseAAs(baseAAs);
   }
 
   private scheduleExchangeRatesUpdate(): void {

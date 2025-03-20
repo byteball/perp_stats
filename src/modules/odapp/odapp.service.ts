@@ -51,10 +51,7 @@ export class OdappService {
   getDefinition(aa: string) {
     const cacheKey = `definition_${aa}`;
 
-    return this.cacheService.getOrSet(
-      cacheKey,
-      () => this.odapp.getDefinition(aa)
-    );
+    return this.cacheService.getOrSet(cacheKey, () => this.odapp.getDefinition(aa));
   }
 
   async getAAsStateVars(aas: string[]) {

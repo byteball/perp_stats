@@ -2,7 +2,6 @@ import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
 import { ValidationPipe, Logger } from '@nestjs/common';
 import { LoggingInterceptor } from './common/interceptors/logging.interceptor';
-import { PerpPriceService } from './modules/perp-price/perp-price.service';
 import * as migration from './database/migration';
 
 async function bootstrap() {
@@ -29,11 +28,6 @@ async function bootstrap() {
     const port = process.env.PORT || 3000;
     await app.listen(port);
     logger.log(`Application is running on: ${port}`);
-
-    const perpPriceService = app.get(PerpPriceService);
-    logger.log('Initializing historical price data...');
-    await perpPriceService.initializeHistoricalData();
-    logger.log('Historical price data initialization completed');
   } catch (error) {
     logger.error(`Failed to start application: ${error.message}`, error.stack);
     process.exit(1);

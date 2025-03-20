@@ -1,4 +1,4 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { getParam } from 'src/utils/getParam.utils';
 import { getNotDefaultAssetsFromMeta, isBrokenPresale } from 'src/utils/perp.utils';
 import { PerpetualStat } from './interfaces/prepare-pyth.interface';
@@ -6,7 +6,6 @@ import { OdappService } from '../odapp/odapp.service';
 
 @Injectable()
 export class PreparePythService {
-  private readonly logger = new Logger(PreparePythService.name);
   private assetsCache: Record<string, any> = {};
 
   constructor(private readonly odappService: OdappService) {}
@@ -155,12 +154,7 @@ export class PreparePythService {
     return priceByAsset;
   }
 
-  async adjustPrices(
-    asset: string,
-    asset_info: Record<string, any>,
-    state: Record<string, any>,
-    varsAndParams: Record<string, any>,
-  ) {
+  async adjustPrices(asset: string, asset_info: Record<string, any>, state: Record<string, any>, varsAndParams: Record<string, any>) {
     const getParameter = (name: string, defaultValue: any) => {
       if (varsAndParams[name] !== undefined) {
         return varsAndParams[name];
