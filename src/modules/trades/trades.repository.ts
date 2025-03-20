@@ -23,7 +23,7 @@ export class TradesRepository {
     }
   }
 
-  async getLastPriceFromResponse(pyth: string, asset: string): Promise<number> {
+  async getLastPriceInReserve(pyth: string, asset: string): Promise<number> {
     try {
       const rows = await db.query(
         `SELECT price_in_reserve FROM trades_history 

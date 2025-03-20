@@ -3,7 +3,5 @@ import { IPriceProvider, PriceData, PriceProviderParams } from '../interfaces/pr
 
 @Injectable()
 export abstract class AbstractPriceProviderService implements IPriceProvider {
-  abstract getCoinIdBySymbol(symbol: string): string | null;
-
   abstract getMarketChartRange(params: PriceProviderParams): Promise<PriceData[]>;
 }

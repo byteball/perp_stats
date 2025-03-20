@@ -10,6 +10,7 @@ export async function run(): Promise<void> {
         asset TEXT NOT NULL,
         is_realtime INTEGER NOT NULL DEFAULT 0,
         usd_price REAL NOT NULL,
+        price_in_reserve REAL NOT NULL,
         timestamp INTEGER NOT NULL,
         creation_date INTEGER DEFAULT (CURRENT_TIMESTAMP),
         CONSTRAINT snapshot_history_pk PRIMARY KEY (aa_address,asset,timestamp)

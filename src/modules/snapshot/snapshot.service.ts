@@ -1,4 +1,4 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, InternalServerErrorException, Logger } from '@nestjs/common';
 import { SnapshotRepository } from './snapshot.repository';
 import { OdappService } from '../odapp/odapp.service';
 import { AbstractPriceProviderService } from '../price-provider/providers/abstract-price-provider.service';
@@ -51,6 +51,25 @@ export class SnapshotService {
     }
   }
 
+  private async getAssetsByPyth(pyth: string): Promise<string[]> {
+    const vars = await this.odappService.getAAStateVars(pyth);
+    this.logger.debug(`Vars for Pyth ${pyth}: ${JSON.stringify(vars)}`);
+    if (vars.error) {
+      this.logger.error(`Error getting assets by Pyth: ${pyth} ${vars.error}`);
+      throw new InternalServerErrorException('Failed to retrieve assets by Pyth');
+    }
+
+    const assets = [vars['state'].asset0];
+    const keys = Object.keys(vars);
+    for (const key of keys) {
+      if (key.startsWith('asset_')) {
+        assets.push(key.split('_')[1]);
+      }
+    }
+
+    return assets;
+  }
+
   private async fillPythHistory(pythAddress: string, startTimestamp: number): Promise<void> {
     const endTimestamp = Math.floor(Date.now() / 1000);
 
@@ -68,14 +87,11 @@ export class SnapshotService {
     }
 
     const symbol = feedName.split('_')[0];
-    const coinId = this.priceProvider.getCoinIdBySymbol(symbol);
 
-    if (!coinId) return;
-
-    this.logger.log(`Fetching price data for ${coinId} from ${startTimestamp} to ${endTimestamp}`);
+    this.logger.log(`Fetching price data for ${symbol} from ${startTimestamp} to ${endTimestamp}`);
 
     const params: PriceProviderParams = {
-      coinId: coinId,
+      symbol,
       vsCurrency: 'usd',
       from: startTimestamp,
       to: endTimestamp,
@@ -84,14 +100,14 @@ export class SnapshotService {
     try {
       const priceData: PriceData[] = await this.priceProvider.getMarketChartRange(params);
 
-      this.logger.log(`Fetched price data for ${coinId} from ${startTimestamp} to ${endTimestamp}: ${priceData?.length || 0} points`);
+      this.logger.log(`Fetched price data for ${symbol} from ${startTimestamp} to ${endTimestamp}: ${priceData?.length || 0} points`);
 
       if (!priceData || priceData.length === 0) {
-        this.logger.warn(`No price data returned for ${coinId}`);
+        this.logger.warn(`No price data returned for ${symbol}`);
         return;
       }
 
-      const assets = await this.snapshotRepository.getAssetsByPyth(pythAddress);
+      const assets = await this.getAssetsByPyth(pythAddress);
       if (!assets || assets.length === 0) {
         this.logger.warn(`No assets found for Pyth address ${pythAddress}`);
         return;
@@ -111,7 +127,7 @@ export class SnapshotService {
 
   private async fillAssetHistory(pythAddress: string, asset: string, priceData: PriceData[]): Promise<void> {
     try {
-      const priceInReserve = await this.tradesService.getLastPriceFromResponse(pythAddress, asset);
+      const priceInReserve = await this.tradesService.getLastPriceInReserve(pythAddress, asset);
       this.logger.log(`Last price in reserve for ${asset}: ${priceInReserve}`);
       this.logger.log(`Processing ${priceData.length} price points for asset ${asset}`);
 
@@ -124,6 +140,7 @@ export class SnapshotService {
           aaAddress: pythAddress,
           asset,
           isRealtime: 0,
+          priceInReserve,
           usdPrice,
           timestamp,
         });

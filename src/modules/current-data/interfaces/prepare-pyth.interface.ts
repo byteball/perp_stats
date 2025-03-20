@@ -6,4 +6,5 @@ export interface Price {
 export interface PerpetualStat {
   aa: string;
   prices: Price[];
+  priceInReserve: number;
 }

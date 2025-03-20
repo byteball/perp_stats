@@ -16,11 +16,9 @@ export class CurrentDataService {
     private readonly snapshotService: SnapshotService,
     private readonly odappService: OdappService,
   ) {
-    if (process.env.UPDATE_PRICES_ON_START) {
-      setTimeout(async () => {
-        await this.handleHourlyUpdate();
-      }, 4000);
-    }
+    setTimeout(async () => {
+      await this.handleHourlyUpdate();
+    }, 10000);
   }
 
   @Cron('0 0 * * * *')
@@ -76,6 +74,7 @@ export class CurrentDataService {
           asset: priceData.asset,
           isRealtime: 1,
           usdPrice: priceData.usdPrice,
+          priceInReserve: stat.priceInReserve,
           timestamp,
         });
       }

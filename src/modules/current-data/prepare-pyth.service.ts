@@ -19,7 +19,7 @@ export class PreparePythService {
 
     const assetList = [asset0];
 
-    const reservePrice = await this.getReservePrice(reservePriceAA);
+    const priceInReserve = await this.getReservePrice(reservePriceAA);
 
     const _assets = {};
 
@@ -50,7 +50,7 @@ export class PreparePythService {
       if (!metaByAsset[asset]) continue;
       const price = r[asset];
 
-      let priceInUSD = price * reservePrice; // raw price in usd
+      let priceInUSD = price * priceInReserve; // raw price in usd
       priceInUSD *= 10 ** (metaByAsset[asset].decimals || 0); // price in usd with decimals
 
       if (asset === asset0) {
@@ -63,6 +63,7 @@ export class PreparePythService {
     return {
       aa: metaByAA.aa,
       prices: [{ usdPrice: asset0Price, asset: asset0 }, ...ps],
+      priceInReserve,
     };
   }
 

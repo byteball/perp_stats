@@ -17,8 +17,8 @@ export class TradesService {
     this.initializeHistoricalData();
   }
 
-  async getLastPriceFromResponse(pyth: string, asset: string): Promise<number> {
-    return this.tradesRepository.getLastPriceFromResponse(pyth, asset);
+  async getLastPriceInReserve(pyth: string, asset: string): Promise<number> {
+    return this.tradesRepository.getLastPriceInReserve(pyth, asset);
   }
 
   private subscribeToAAResponses(): void {
@@ -118,17 +118,8 @@ export class TradesService {
       const responses = await this.obyteService.getAllAAResponses(aa, lastMci);
       this.logger.log(`Processing ${responses.length} historical responses for AA ${aa}`);
 
-      const batchSize = 50;
-      const batches = Math.ceil(responses.length / batchSize);
-
-      for (let i = 0; i < batches; i++) {
-        const start = i * batchSize;
-        const end = Math.min(start + batchSize, responses.length);
-        const batchResponses = responses.slice(start, end);
-
-        for (const response of batchResponses) {
-          await this.handleAAResponse(response, false);
-        }
+      for (const response of responses) {
+        await this.handleAAResponse(response, false);
       }
     } catch (error) {
       this.logger.error(`Error processing historical responses for AA ${aa}: ${error.message}`);

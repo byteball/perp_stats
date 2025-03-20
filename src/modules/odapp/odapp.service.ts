@@ -48,7 +48,7 @@ export class OdappService {
     return result;
   }
 
-  getDefinition(aa: string) {
+  async getDefinition(aa: string) {
     const cacheKey = `definition_${aa}`;
 
     return this.cacheService.getOrSet(cacheKey, () => this.odapp.getDefinition(aa));
@@ -58,11 +58,11 @@ export class OdappService {
     return this.odapp.getAAsStateVars(aas);
   }
 
-  getAAStateVars(aa: string) {
+  async getAAStateVars(aa: string) {
     return this.odapp.getAAStateVars(aa);
   }
 
-  getDataFeed(oracles: string[], feedName: string) {
+  async getDataFeed(oracles: string[], feedName: string) {
     return this.odapp.getDataFeed(oracles, feedName);
   }
 

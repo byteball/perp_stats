@@ -19,5 +19,9 @@ export class SnapshotDto {
 
   @IsNumber()
   @Type(() => Number)
+  priceInReserve: number;
+
+  @IsNumber()
+  @Type(() => Number)
   timestamp: number;
 }

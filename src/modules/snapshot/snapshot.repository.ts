@@ -12,18 +12,6 @@ dayjs.extend(utc);
 export class SnapshotRepository {
   private readonly logger = new Logger(SnapshotRepository.name);
 
-  async getAssetsByPyth(pyth: string): Promise<string[]> {
-    try {
-      const rows = await db.query('SELECT DISTINCT asset FROM perp_price_history WHERE aa_address = ?', [pyth]);
-
-      return rows.map((row: { asset: string }) => row.asset);
-    } catch (error) {
-      this.logger.error(`Error getting assets by Pyth: ${error.message}`, error.stack);
-
-      throw new InternalServerErrorException('Failed to retrieve assets by Pyth');
-    }
-  }
-
   async getLastTimestamp(): Promise<number> {
     try {
       const rows = await db.query('SELECT timestamp FROM snapshot_history ORDER BY timestamp DESC LIMIT 1');
@@ -39,9 +27,9 @@ export class SnapshotRepository {
     try {
       await db.query(
         `INSERT OR IGNORE INTO snapshot_history 
-        (aa_address, asset, is_realtime, usd_price, timestamp) 
-        VALUES (?, ?, ?, ?, ?)`,
-        [data.aaAddress, data.asset, data.isRealtime, data.usdPrice, data.timestamp],
+        (aa_address, asset, is_realtime, usd_price, price_in_reserve, timestamp) 
+        VALUES (?, ?, ?, ?, ?, ?)`,
+        [data.aaAddress, data.asset, data.isRealtime, data.usdPrice, data.priceInReserve, data.timestamp],
       );
 
       return true;
@@ -60,9 +48,9 @@ export class SnapshotRepository {
       for (const data of records) {
         await conn.query(
           `INSERT OR IGNORE INTO snapshot_history 
-          (aa_address, asset, is_realtime, usd_price, timestamp) 
-          VALUES (?, ?, ?, ?, ?)`,
-          [data.aaAddress, data.asset, data.isRealtime, data.usdPrice, data.timestamp],
+          (aa_address, asset, is_realtime, usd_price, price_in_reserve, timestamp) 
+          VALUES (?, ?, ?, ?, ?, ?)`,
+          [data.aaAddress, data.asset, data.isRealtime, data.usdPrice, data.priceInReserve, data.timestamp],
         );
       }
 
@@ -114,12 +102,12 @@ export class SnapshotRepository {
       const query = `
         SELECT 
           usd_price as price, timestamp
-        FROM perp_price_history
+        FROM snapshot_history
         WHERE asset = ? 
         AND timestamp >= ?
         AND timestamp IN (
           SELECT MIN(timestamp)
-          FROM perp_price_history
+          FROM snapshot_history
           WHERE asset = ?
           AND timestamp >= ?
           GROUP BY date(timestamp, 'unixepoch')
