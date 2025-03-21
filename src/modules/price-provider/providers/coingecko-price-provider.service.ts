@@ -45,26 +45,15 @@ export class CoinGeckoPriceProviderService implements AbstractPriceProviderServi
     }
   }
 
-  getCoinIdBySymbol(symbol: string): string | null {
-    const upperSymbol = symbol.toUpperCase();
-
-    if (upperSymbol === this.brokenAssetSymbol) {
-      return null;
-    }
-
-    const coinId = this.symbolToIdMap[upperSymbol] || null;
-
-    if (!coinId) {
-      this.logger.error(`No CoinGecko mapping found for symbol: ${symbol}`);
-      process.exit(1);
-    }
-
-    return coinId;
-  }
-
   async getMarketChartRange(params: PriceProviderParams): Promise<PriceData[]> {
     try {
-      const { coinId, vsCurrency, from, to } = params;
+      const { symbol, vsCurrency, from, to } = params;
+      const coinId = this.getCoinIdBySymbol(symbol);
+
+      if (!coinId) {
+        return [];
+      }
+
       const url = `${this.baseUrl}/coins/${coinId}/market_chart/range?vs_currency=${vsCurrency}&from=${from}&to=${to}`;
 
       const options = {
@@ -97,5 +86,22 @@ export class CoinGeckoPriceProviderService implements AbstractPriceProviderServi
       this.logger.error(`Error fetching market chart data: ${error.message}`, error.stack);
       throw new HttpException(`Failed to fetch data from CoinGecko: ${error.message}`, HttpStatus.INTERNAL_SERVER_ERROR);
     }
+  }
+
+  private getCoinIdBySymbol(symbol: string): string | null {
+    const upperSymbol = symbol.toUpperCase();
+
+    if (upperSymbol === this.brokenAssetSymbol) {
+      return null;
+    }
+
+    const coinId = this.symbolToIdMap[upperSymbol] || null;
+
+    if (!coinId) {
+      this.logger.error(`No CoinGecko mapping found for symbol: ${symbol}`);
+      process.exit(1);
+    }
+
+    return coinId;
   }
 }

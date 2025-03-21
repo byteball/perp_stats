@@ -2,10 +2,9 @@ import { Injectable, Logger } from '@nestjs/common';
 import { Cron } from '@nestjs/schedule';
 import { ConfigService } from '@nestjs/config';
 import { PreparePythService } from './prepare-pyth.service';
-import { ObyteService } from '../obyte/obyte.service';
-import { PerpPriceService } from '../perp-price/perp-price.service';
 import { PerpetualStat } from './interfaces/prepare-pyth.interface';
 import { OdappService } from '../odapp/odapp.service';
+import { SnapshotService } from '../snapshot/snapshot.service';
 
 @Injectable()
 export class CurrentDataService {
@@ -14,16 +13,9 @@ export class CurrentDataService {
   constructor(
     private readonly configService: ConfigService,
     private readonly preparePythService: PreparePythService,
-    private readonly obyteService: ObyteService,
-    private readonly perpPriceService: PerpPriceService,
+    private readonly snapshotService: SnapshotService,
     private readonly odappService: OdappService,
-  ) {
-    if (process.env.UPDATE_PRICES_ON_START) {
-      setTimeout(async () => {
-        await this.handleHourlyUpdate();
-      }, 4000);
-    }
-  }
+  ) {}
 
   @Cron('0 0 * * * *')
   async handleHourlyUpdate() {
@@ -68,19 +60,17 @@ export class CurrentDataService {
   }
 
   private async savePerpetualStatsToDb(perpetualStats: PerpetualStat[]) {
-    const mci = await this.obyteService.getLastMCI();
     const timestamp = Math.floor(Date.now() / 1000);
 
     for (const stat of perpetualStats) {
       const aaAddress = stat.aa;
       for (const priceData of stat.prices) {
-        await this.perpPriceService.savePrice({
+        await this.snapshotService.saveSnapshot({
           aaAddress,
-          mci,
           asset: priceData.asset,
           isRealtime: 1,
           usdPrice: priceData.usdPrice,
-          priceInReserve: 0,
+          priceInReserve: priceData.priceInReserve,
           timestamp,
         });
       }

@@ -1,28 +1,14 @@
 import { IsString, IsNotEmpty, IsNumber, IsOptional } from 'class-validator';
 import { Type } from 'class-transformer';
 
-export class GetPerpPriceQueryDto {
-  @IsString()
-  @IsNotEmpty({ message: 'Asset parameter is required' })
-  asset: string;
-
-  @IsString()
-  @IsOptional()
-  tzOffset?: string;
-}
-
-export class PerpPriceResponseDto {
-  @IsNumber()
-  price: number;
-
-  @IsNumber()
-  timestamp: number;
-}
-
-export class PerpPriceDto {
+export class TradeDto {
   @IsString()
   @IsNotEmpty()
   aaAddress: string;
+
+  @IsString()
+  @IsNotEmpty()
+  triggerUnit: string;
 
   @IsNumber()
   @Type(() => Number)

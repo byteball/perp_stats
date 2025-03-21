@@ -1,12 +1,11 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { getParam } from 'src/utils/getParam.utils';
 import { getNotDefaultAssetsFromMeta, isBrokenPresale } from 'src/utils/perp.utils';
-import { PerpetualStat } from './interfaces/prepare-pyth.interface';
+import { PerpetualStat, Price } from './interfaces/prepare-pyth.interface';
 import { OdappService } from '../odapp/odapp.service';
 
 @Injectable()
 export class PreparePythService {
-  private readonly logger = new Logger(PreparePythService.name);
   private assetsCache: Record<string, any> = {};
 
   constructor(private readonly odappService: OdappService) {}
@@ -46,7 +45,7 @@ export class PreparePythService {
     const r = await this.getPriceByAssets(metaByAA.aa, assetList, metaByAA);
 
     let asset0Price = 0;
-    const ps: { usdPrice: number; asset: string }[] = [];
+    const ps: Price[] = [];
     for (const asset in r) {
       if (!metaByAsset[asset]) continue;
       const price = r[asset];
@@ -57,13 +56,13 @@ export class PreparePythService {
       if (asset === asset0) {
         asset0Price = priceInUSD;
       } else {
-        ps.push({ usdPrice: priceInUSD, asset });
+        ps.push({ usdPrice: priceInUSD, priceInReserve: price, asset });
       }
     }
 
     return {
       aa: metaByAA.aa,
-      prices: [{ usdPrice: asset0Price, asset: asset0 }, ...ps],
+      prices: [{ usdPrice: asset0Price, priceInReserve: r[asset0], asset: asset0 }, ...ps],
     };
   }
 
@@ -155,12 +154,7 @@ export class PreparePythService {
     return priceByAsset;
   }
 
-  async adjustPrices(
-    asset: string,
-    asset_info: Record<string, any>,
-    state: Record<string, any>,
-    varsAndParams: Record<string, any>,
-  ) {
+  async adjustPrices(asset: string, asset_info: Record<string, any>, state: Record<string, any>, varsAndParams: Record<string, any>) {
     const getParameter = (name: string, defaultValue: any) => {
       if (varsAndParams[name] !== undefined) {
         return varsAndParams[name];

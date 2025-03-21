@@ -5,8 +5,22 @@ export async function run(): Promise<void> {
 
   try {
     await db.query(`
-      CREATE TABLE IF NOT EXISTS perp_price_history (
+      CREATE TABLE IF NOT EXISTS snapshot_history (
         aa_address TEXT NOT NULL,
+        asset TEXT NOT NULL,
+        is_realtime INTEGER NOT NULL DEFAULT 0,
+        usd_price REAL NOT NULL,
+        price_in_reserve REAL NOT NULL,
+        timestamp INTEGER NOT NULL,
+        creation_date INTEGER DEFAULT (CURRENT_TIMESTAMP),
+        CONSTRAINT snapshot_history_pk PRIMARY KEY (aa_address,asset,timestamp)
+      )
+    `);
+
+    await db.query(`
+      CREATE TABLE IF NOT EXISTS trades_history (
+        aa_address TEXT NOT NULL,
+        trigger_unit TEXT NOT NULL,
         mci INTEGER NOT NULL,
         asset TEXT NOT NULL,
         is_realtime INTEGER NOT NULL DEFAULT 0,
@@ -14,23 +28,33 @@ export async function run(): Promise<void> {
         price_in_reserve REAL NOT NULL,
         timestamp INTEGER NOT NULL,
         creation_date INTEGER DEFAULT (CURRENT_TIMESTAMP),
-        CONSTRAINT perp_price_history_pk PRIMARY KEY (aa_address,asset,timestamp)
+        CONSTRAINT trades_history_pk PRIMARY KEY (aa_address,asset,timestamp)
       )
     `);
 
     await db.query(`
-      CREATE INDEX IF NOT EXISTS idx_perp_price_asset_timestamp 
-      ON perp_price_history (asset, timestamp)
+      CREATE INDEX IF NOT EXISTS idx_snapshot_asset_timestamp 
+      ON snapshot_history (asset, timestamp)
     `);
 
     await db.query(`
-      CREATE INDEX IF NOT EXISTS idx_perp_price_timestamp 
-      ON perp_price_history (timestamp)
+      CREATE INDEX IF NOT EXISTS idx_trades_asset_timestamp 
+      ON trades_history (asset, timestamp)
     `);
 
     await db.query(`
-      CREATE INDEX IF NOT EXISTS idx_perp_price_mci_desc
-      ON perp_price_history (mci DESC)
+      CREATE INDEX IF NOT EXISTS idx_snapshot_timestamp 
+      ON snapshot_history (timestamp)
+    `);
+
+    await db.query(`
+      CREATE INDEX IF NOT EXISTS idx_trades_timestamp 
+      ON trades_history (timestamp)
+    `);
+
+    await db.query(`
+      CREATE INDEX IF NOT EXISTS idx_trades_mci_desc
+      ON trades_history (mci DESC)
     `);
 
     console.log('Migration completed successfully');
