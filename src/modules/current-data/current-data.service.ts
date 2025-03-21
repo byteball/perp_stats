@@ -15,11 +15,7 @@ export class CurrentDataService {
     private readonly preparePythService: PreparePythService,
     private readonly snapshotService: SnapshotService,
     private readonly odappService: OdappService,
-  ) {
-    setTimeout(async () => {
-      await this.handleHourlyUpdate();
-    }, 10000);
-  }
+  ) {}
 
   @Cron('0 0 * * * *')
   async handleHourlyUpdate() {
@@ -74,7 +70,7 @@ export class CurrentDataService {
           asset: priceData.asset,
           isRealtime: 1,
           usdPrice: priceData.usdPrice,
-          priceInReserve: stat.priceInReserve,
+          priceInReserve: priceData.priceInReserve,
           timestamp,
         });
       }

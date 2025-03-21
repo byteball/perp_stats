@@ -3,6 +3,9 @@ import { AppModule } from './app.module';
 import { ValidationPipe, Logger } from '@nestjs/common';
 import { LoggingInterceptor } from './common/interceptors/logging.interceptor';
 import * as migration from './database/migration';
+import { TradesService } from './modules/trades/trades.service';
+import { CurrentDataService } from './modules/current-data/current-data.service';
+import { SnapshotService } from './modules/snapshot/snapshot.service';
 
 async function bootstrap() {
   const logger = new Logger('Bootstrap');
@@ -27,7 +30,12 @@ async function bootstrap() {
 
     const port = process.env.PORT || 3000;
     await app.listen(port);
+
     logger.log(`Application is running on: ${port}`);
+    await app.get(TradesService).initializeHistoricalData();
+    await app.get(SnapshotService).initFillPythHistory();
+    await app.get(CurrentDataService).handleHourlyUpdate();
+    logger.log('Application started successfully');
   } catch (error) {
     logger.error(`Failed to start application: ${error.message}`, error.stack);
     process.exit(1);

@@ -14,7 +14,6 @@ export class TradesService {
     private readonly odappService: OdappService,
   ) {
     this.subscribeToAAResponses();
-    this.initializeHistoricalData();
   }
 
   async getLastPriceInReserve(pyth: string, asset: string): Promise<number> {

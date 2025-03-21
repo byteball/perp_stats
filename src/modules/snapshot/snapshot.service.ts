@@ -19,9 +19,7 @@ export class SnapshotService {
     private readonly snapshotRepository: SnapshotRepository,
     private readonly priceProvider: AbstractPriceProviderService,
     private readonly tradesService: TradesService,
-  ) {
-    this.initFillPythHistory();
-  }
+  ) {}
 
   async saveSnapshot(priceData: SnapshotDto) {
     await this.snapshotRepository.saveSnapshot(priceData);
@@ -35,7 +33,7 @@ export class SnapshotService {
     return this.snapshotRepository.getLastMonthPrices(asset);
   }
 
-  private async initFillPythHistory() {
+  async initFillPythHistory() {
     const lastTimestamp = await this.snapshotRepository.getLastTimestamp();
     const timestamp30DaysAgo = getTimestamp30DaysAgo();
 
@@ -53,7 +51,6 @@ export class SnapshotService {
 
   private async getAssetsByPyth(pyth: string): Promise<string[]> {
     const vars = await this.odappService.getAAStateVars(pyth);
-    this.logger.debug(`Vars for Pyth ${pyth}: ${JSON.stringify(vars)}`);
     if (vars.error) {
       this.logger.error(`Error getting assets by Pyth: ${pyth} ${vars.error}`);
       throw new InternalServerErrorException('Failed to retrieve assets by Pyth');
@@ -115,9 +112,13 @@ export class SnapshotService {
 
       this.logger.log(`Found ${assets.length} assets for Pyth ${pythAddress}: ${assets.join(', ')}`);
 
+      const reserveAsset = aaDefinition[1].params.reserve_asset;
+      const assetsMetadata = await this.odappService.getAssetsMetadata([reserveAsset]);
+      const reserveAssetDecimals = assetsMetadata[reserveAsset]?.decimals || 0;
+
       for (const asset of assets) {
         this.logger.log(`Processing price data for ${asset} from ${pythAddress}`);
-        await this.fillAssetHistory(pythAddress, asset, priceData);
+        await this.fillAssetHistory(pythAddress, asset, priceData, reserveAssetDecimals);
         this.logger.log(`Finished processing price data for ${asset} from ${pythAddress}`);
       }
     } catch (error) {
@@ -125,23 +126,29 @@ export class SnapshotService {
     }
   }
 
-  private async fillAssetHistory(pythAddress: string, asset: string, priceData: PriceData[]): Promise<void> {
+  private async fillAssetHistory(pythAddress: string, asset: string, priceData: PriceData[], reserveAssetDecimals: number): Promise<void> {
     try {
       const priceInReserve = await this.tradesService.getLastPriceInReserve(pythAddress, asset);
       this.logger.log(`Last price in reserve for ${asset}: ${priceInReserve}`);
       this.logger.log(`Processing ${priceData.length} price points for asset ${asset}`);
 
+      const assetsMetadata = await this.odappService.getAssetsMetadata([asset]);
+      const decimals = assetsMetadata[asset]?.decimals || 0;
+
       const dataForSave: SnapshotDto[] = [];
       for (const data of priceData) {
         const { timestamp, price: reservePrice } = data;
-        const usdPrice = reservePrice * priceInReserve;
+        const normalizedReservePrice = reservePrice / 10 ** reserveAssetDecimals;
+
+        let priceInUSD = normalizedReservePrice * priceInReserve;
+        priceInUSD *= 10 ** decimals;
 
         dataForSave.push({
           aaAddress: pythAddress,
           asset,
           isRealtime: 0,
           priceInReserve,
-          usdPrice,
+          usdPrice: priceInUSD,
           timestamp,
         });
       }

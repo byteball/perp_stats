@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { getParam } from 'src/utils/getParam.utils';
 import { getNotDefaultAssetsFromMeta, isBrokenPresale } from 'src/utils/perp.utils';
-import { PerpetualStat } from './interfaces/prepare-pyth.interface';
+import { PerpetualStat, Price } from './interfaces/prepare-pyth.interface';
 import { OdappService } from '../odapp/odapp.service';
 
 @Injectable()
@@ -19,7 +19,7 @@ export class PreparePythService {
 
     const assetList = [asset0];
 
-    const priceInReserve = await this.getReservePrice(reservePriceAA);
+    const reservePrice = await this.getReservePrice(reservePriceAA);
 
     const _assets = {};
 
@@ -45,25 +45,24 @@ export class PreparePythService {
     const r = await this.getPriceByAssets(metaByAA.aa, assetList, metaByAA);
 
     let asset0Price = 0;
-    const ps: { usdPrice: number; asset: string }[] = [];
+    const ps: Price[] = [];
     for (const asset in r) {
       if (!metaByAsset[asset]) continue;
       const price = r[asset];
 
-      let priceInUSD = price * priceInReserve; // raw price in usd
+      let priceInUSD = price * reservePrice; // raw price in usd
       priceInUSD *= 10 ** (metaByAsset[asset].decimals || 0); // price in usd with decimals
 
       if (asset === asset0) {
         asset0Price = priceInUSD;
       } else {
-        ps.push({ usdPrice: priceInUSD, asset });
+        ps.push({ usdPrice: priceInUSD, priceInReserve: price, asset });
       }
     }
 
     return {
       aa: metaByAA.aa,
-      prices: [{ usdPrice: asset0Price, asset: asset0 }, ...ps],
-      priceInReserve,
+      prices: [{ usdPrice: asset0Price, priceInReserve: r[asset0], asset: asset0 }, ...ps],
     };
   }
 
