@@ -2,7 +2,7 @@ import { Controller, Get, Logger, Query, HttpException, HttpStatus } from '@nest
 import { ApiService } from './api.service';
 import { GetHourlyPricesQueryDto, HourlyPriceResponseDto } from './dto/hourly-prices.dto';
 
-@Controller('api')
+@Controller()
 export class ApiController {
   private readonly logger = new Logger(ApiController.name);
 
