@@ -7,6 +7,7 @@ import { OdappModule } from './modules/odapp/odapp.module';
 import { TradesModule } from './modules/trades/trades.module';
 import { SnapshotModule } from './modules/snapshot/snapshot.module';
 import obyteConfig from './config/obyte.config';
+import { ApiModule } from './modules/api/api.module';
 
 @Module({
   imports: [
@@ -20,6 +21,7 @@ import obyteConfig from './config/obyte.config';
     TradesModule,
     SnapshotModule,
     CurrentDataModule,
+    ApiModule,
   ],
 })
 export class AppModule {}
