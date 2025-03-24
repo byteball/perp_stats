@@ -5,9 +5,10 @@ import { AbstractPriceProviderService } from '../price-provider/providers/abstra
 import { PriceProviderParams, PriceData } from '../price-provider/interfaces/price-provider.interface';
 import { SnapshotDto } from './dto/shapshot.dto';
 import { TradesService } from '../trades/trades.service';
-import { getTimestamp30DaysAgo } from 'src/utils/date.utils';
+import { getTimestamp30DaysAgo, generateHoursByTimestampRange } from 'src/utils/date.utils';
 import { ObyteService } from '../obyte/obyte.service';
 import { HourlyPriceResponseDto } from '../api/dto/hourly-prices.dto';
+import { PreparePriceData } from './PreparePriceData';
 
 @Injectable()
 export class SnapshotService {
@@ -40,12 +41,18 @@ export class SnapshotService {
     const pythAddresses = await this.obyteService.getPythAddresses();
 
     const startTimestamp = lastTimestamp > timestamp30DaysAgo ? lastTimestamp : timestamp30DaysAgo;
+    const endTimestamp = Math.floor(Date.now() / 1000);
+    const hoursRange = generateHoursByTimestampRange(startTimestamp, endTimestamp);
+    if (hoursRange.length < 2) {
+      this.logger.log(`Skipping Pyth history fill for ${pythAddresses.length} Pyth addresses. Length: ${hoursRange.length}`);
+      return;
+    }
 
-    this.logger.log(`Starting to fill Pyth history from ${startTimestamp} to ${Math.floor(Date.now() / 1000)}`);
+    this.logger.log(`Starting to fill Pyth history from ${startTimestamp} to ${endTimestamp}`);
 
     this.logger.log(`Found ${pythAddresses.length} Pyth addresses`);
     for (const pythAddress of pythAddresses) {
-      await this.fillPythHistory(pythAddress, startTimestamp);
+      await this.fillPythHistory(pythAddress, hoursRange);
     }
   }
 
@@ -67,9 +74,7 @@ export class SnapshotService {
     return assets;
   }
 
-  private async fillPythHistory(pythAddress: string, startTimestamp: number): Promise<void> {
-    const endTimestamp = Math.floor(Date.now() / 1000);
-
+  private async fillPythHistory(pythAddress: string, hoursRange: number[]): Promise<void> {
     const aaDefinition = await this.odappService.getDefinition(pythAddress);
     if (!aaDefinition || !aaDefinition[1] || !aaDefinition[1].params) return;
 
@@ -85,19 +90,21 @@ export class SnapshotService {
 
     const symbol = feedName.split('_')[0];
 
-    this.logger.log(`Fetching price data for ${symbol} from ${startTimestamp} to ${endTimestamp}`);
+    this.logger.log(`Fetching price data for ${symbol} from ${hoursRange.at(0)} to ${hoursRange.at(-1)}`);
 
     const params: PriceProviderParams = {
       symbol,
       vsCurrency: 'usd',
-      from: startTimestamp,
-      to: endTimestamp,
+      from: hoursRange.at(0)!,
+      to: hoursRange.at(-1)!,
     };
 
     try {
       const priceData: PriceData[] = await this.priceProvider.getMarketChartRange(params);
 
-      this.logger.log(`Fetched price data for ${symbol} from ${startTimestamp} to ${endTimestamp}: ${priceData?.length || 0} points`);
+      this.logger.log(
+        `Fetched price data for ${symbol} from ${hoursRange.at(0)} to ${hoursRange.at(-1)}: ${priceData?.length || 0} points`,
+      );
 
       if (!priceData || priceData.length === 0) {
         this.logger.warn(`No price data returned for ${symbol}`);
@@ -110,6 +117,10 @@ export class SnapshotService {
         return;
       }
 
+      const preparePriceData = new PreparePriceData(priceData, hoursRange);
+      const preparedPriceData = preparePriceData.prepare();
+      this.logger.debug(`Prepared price data for ${symbol}: ${preparedPriceData?.length || 0} points`);
+
       this.logger.log(`Found ${assets.length} assets for Pyth ${pythAddress}: ${assets.join(', ')}`);
 
       const reserveAsset = aaDefinition[1].params.reserve_asset;
@@ -118,7 +129,7 @@ export class SnapshotService {
 
       for (const asset of assets) {
         this.logger.log(`Processing price data for ${asset} from ${pythAddress}`);
-        await this.fillAssetHistory(pythAddress, asset, priceData, reserveAssetDecimals);
+        await this.fillAssetHistory(pythAddress, asset, preparedPriceData, reserveAssetDecimals);
         this.logger.log(`Finished processing price data for ${asset} from ${pythAddress}`);
       }
     } catch (error) {

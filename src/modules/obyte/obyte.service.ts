@@ -21,18 +21,17 @@ export class ObyteService {
     return this.obyteNetworkService.getAAsFromBaseAAs(baseAAs);
   }
 
-  private scheduleExchangeRatesUpdate(): void {
-    this.updateExchangeRates();
-    setInterval(() => this.updateExchangeRates(), 1000 * 60 * 5);
-  }
-
-  private async updateExchangeRates(): Promise<void> {
+  async updateExchangeRates(): Promise<void> {
     try {
       this.exchangeRates = await this.getExchangeRates();
       this.logger.debug('Exchange rates updated');
     } catch (error) {
       this.logger.error(`Failed to update exchange rates: ${error.message}`);
     }
+  }
+
+  private scheduleExchangeRatesUpdate(): void {
+    setInterval(() => this.updateExchangeRates(), 1000 * 60 * 5);
   }
 
   getExchangeRateByAsset(asset: string): number {

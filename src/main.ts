@@ -6,6 +6,7 @@ import * as migration from './database/migration';
 import { TradesService } from './modules/trades/trades.service';
 import { CurrentDataService } from './modules/current-data/current-data.service';
 import { SnapshotService } from './modules/snapshot/snapshot.service';
+import { ObyteService } from './modules/obyte/obyte.service';
 
 async function bootstrap() {
   const logger = new Logger('Bootstrap');
@@ -32,6 +33,7 @@ async function bootstrap() {
     await app.listen(port);
 
     logger.log(`Application is running on: ${port}`);
+    await app.get(ObyteService).updateExchangeRates();
     await app.get(TradesService).initializeHistoricalData();
     await app.get(SnapshotService).initFillPythHistory();
     await app.get(CurrentDataService).handleHourlyUpdate();
