@@ -36,7 +36,6 @@ async function bootstrap() {
     await app.get(ObyteService).updateExchangeRates();
     await app.get(TradesService).initializeHistoricalData();
     await app.get(SnapshotService).initFillPythHistory();
-    await app.get(CurrentDataService).handleHourlyUpdate();
     logger.log('Application started successfully');
   } catch (error) {
     logger.error(`Failed to start application: ${error.message}`, error.stack);
