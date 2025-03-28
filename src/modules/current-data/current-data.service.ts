@@ -20,6 +20,7 @@ export class CurrentDataService {
   @Cron('0 0 * * * *')
   async handleHourlyUpdate() {
     this.logger.log('Running hourly update task');
+    const timestamp = Math.floor(Date.now() / 1000);
     try {
       const metaByAA: Record<string, any> = {};
       const baseAAs = this.configService.get<string[]>('obyte.baseAAs', []);
@@ -52,16 +53,14 @@ export class CurrentDataService {
         perpetualStats.push(await this.preparePythService.prepareMetaByAA(metaByAA[aa]));
       }
 
-      await this.savePerpetualStatsToDb(perpetualStats);
+      await this.savePerpetualStatsToDb(perpetualStats, timestamp);
       this.logger.log('Hourly update completed successfully');
     } catch (error) {
       this.logger.error(`Error during hourly update: ${error.message}`, error.stack);
     }
   }
 
-  private async savePerpetualStatsToDb(perpetualStats: PerpetualStat[]) {
-    const timestamp = Math.floor(Date.now() / 1000);
-
+  private async savePerpetualStatsToDb(perpetualStats: PerpetualStat[], timestamp) {
     for (const stat of perpetualStats) {
       const aaAddress = stat.aa;
       for (const priceData of stat.prices) {
