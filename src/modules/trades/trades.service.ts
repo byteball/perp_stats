@@ -65,7 +65,13 @@ export class TradesService {
 
       let reservePrice: number = 0;
 
-      if (reserve_price_aa_definition[1].params.oswap_aa) {
+      if (!reserve_price_aa_definition[1].params) {
+        if (!isRealtime) {
+          this.logger.warn(`Skipping historical trade ${trigger_unit}: reserve AA ${reserve_price_aa} requires a historical price source`);
+          return;
+        }
+        reservePrice = await this.odappService.getReservePriceByGetter(reserve_price_aa, reserve_asset);
+      } else if (reserve_price_aa_definition[1].params.oswap_aa) {
         reservePrice = this.obyteService.getExchangeRateByAsset(reserve_asset);
       } else {
         const oracle = reserve_price_aa_definition[1].params.oracle;

@@ -82,7 +82,7 @@ export class SnapshotService {
     const reserve_price_aa_definition = await this.odappService.getDefinition(reserve_price_aa);
     if (!reserve_price_aa_definition || !reserve_price_aa_definition[1]) return;
 
-    const feedName = reserve_price_aa_definition[1].params.feed_name;
+    const feedName = reserve_price_aa_definition[1].params?.feed_name;
     if (!feedName) {
       this.logger.warn(`No feed_name found for reserve_price_aa ${reserve_price_aa}`);
       return;

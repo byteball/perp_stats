@@ -66,6 +66,22 @@ export class OdappService {
     return this.odapp.getDataFeed(oracles, feedName);
   }
 
+  async getReservePriceByGetter(aa: string, reserveAsset?: string): Promise<number> {
+    const price = await this.odapp.executeGetter({ address: aa, getter: 'get_reserve_price' });
+    if (typeof price !== 'number' || !Number.isFinite(price) || price <= 0) {
+      throw new Error(`Invalid reserve price returned by ${aa}`);
+    }
+
+    if (!reserveAsset) return price;
+    const metadata = await this.getAssetsMetadata([reserveAsset]);
+    const decimals = metadata[reserveAsset]?.decimals;
+    if (!Number.isInteger(decimals) || decimals < 0 || decimals > 18) {
+      throw new Error(`Missing or invalid reserve decimals for ${reserveAsset}`);
+    }
+
+    return price / 10 ** decimals;
+  }
+
   async getAssetsMetadata(assets: string[]) {
     const result: Record<string, any> = {};
     const uncachedAssets: string[] = [];

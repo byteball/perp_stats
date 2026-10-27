@@ -19,7 +19,7 @@ export class PreparePythService {
 
     const assetList = [asset0];
 
-    const reservePrice = await this.getReservePrice(reservePriceAA);
+    const reservePrice = await this.getReservePrice(reservePriceAA, metaByAA.reserve_asset);
 
     const _assets = {};
 
@@ -66,10 +66,11 @@ export class PreparePythService {
     };
   }
 
-  async getReservePrice(aa: string) {
+  async getReservePrice(aa: string, reserveAsset?: string) {
     try {
       const def = await this.odappService.getDefinition(aa);
       const params = def[1].params;
+      if (!params) return await this.odappService.getReservePriceByGetter(aa, reserveAsset);
       if (params.oswap_aa) {
         const oswapDef = await this.odappService.getDefinition(params.oswap_aa);
         const oswapParams = oswapDef[1].params;
